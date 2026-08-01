@@ -1,6 +1,6 @@
 # Gray-Scott Reaction-Diffusion Simulation
 
-A real-time GPU-accelerated simulation of the Gray-Scott reaction-diffusion model, implemented using WebGL and Three.js.
+A real-time GPU-accelerated simulation of the Gray-Scott reaction-diffusion model, built with React, Vite, Three.js, and Tailwind CSS.
 
 ## Introduction
 
@@ -11,10 +11,10 @@ The Gray-Scott model is a mathematical model used to simulate reaction-diffusion
 - **Real-time GPU-accelerated simulation**: High-performance computation and rendering using WebGL and Three.js
 - **Multiple preset modes**: Built-in 12 different parameter combinations producing diverse patterns
 - **Interactive drawing**: Draw on the canvas with mouse or touch to real-time influence the simulation
-- **Parameter adjustment**: Modify feed and kill parameters to observe pattern changes under different conditions
+- **Parameter adjustment**: Modify feed, kill, and speed parameters to observe pattern changes under different conditions
 - **Color customization**: Support for custom color mapping to create unique visual effects
-- **Fullscreen display**: Immersive fullscreen mode support
-- **Responsive design**: Adapts to different screen sizes
+- **Responsive design**: Adapts to different screen sizes with a collapsible sidebar (desktop) and swipe-to-close drawer (mobile)
+- **Info dialog**: In-app documentation explaining the model and controls
 
 ## Preset Modes
 
@@ -52,35 +52,62 @@ Where:
 ### Project Structure
 
 ```
-Gray-Scott/
-├── index.html          # Main page
-├── index.js            # Main program entry
-├── shaders/            # GLSL shaders
-│   ├── gsFragmentShader.glsl    # Gray-Scott computation shader
-│   ├── screenFragmentShader.glsl # Screen display shader
-│   └── standardVertexShader.glsl # Standard vertex shader
-└── utils/              # Utility functions
-    ├── doCal.js        # Computation core
-    ├── doShow.js       # Color display management
-    ├── loadShaders.js  # Shader loading
-    ├── useCanvas.js    # Canvas interaction management
-    └── useThree.js     # Three.js utilities
+gray-scott/
+├── index.html                   # HTML entry, loads /src/main.jsx
+├── package.json                 # Scripts and dependencies (Vite + React + Three.js)
+├── vite.config.js               # Vite configuration
+├── tailwind.config.js           # Tailwind CSS configuration
+├── postcss.config.js            # PostCSS configuration
+└── src/
+    ├── main.jsx                 # React application entry
+    ├── App.jsx                  # Top-level layout, panel state, gestures
+    ├── constants.js             # PRESETS, DEFAULT_COLORS, DEFAULT_SPEED
+    ├── styles.css               # Global styles and Tailwind directives
+    ├── components/              # React UI components
+    │   ├── Sidebar.jsx          # Right-side control panel
+    │   ├── PresetSelect.jsx     # Preset mode selector
+    │   ├── ColorControls.jsx    # Color mapping editors
+    │   ├── InfoDialog.jsx       # About / info dialog
+    │   └── icons.jsx            # Inline SVG icons
+    ├── hooks/
+    │   └── useGrayScott.js      # React hook wiring UI to the simulation engine
+    ├── lib/                     # Simulation and rendering core
+    │   ├── doCal.js             # Gray-Scott computation step (ping-pong render)
+    │   ├── doShow.js            # Color mapping and screen display
+    │   ├── loadShaders.js       # GLSL shader loader
+    │   ├── canvasInput.js       # Mouse/touch drawing input
+    │   └── useThree.js          # Three.js renderer / scene helpers
+    └── shaders/                 # GLSL shaders
+        ├── gsFragmentShader.glsl    # Gray-Scott computation shader
+        ├── screenFragmentShader.glsl # Screen display shader
+        └── standardVertexShader.glsl # Standard vertex shader
 ```
 
 ## Installation and Running
 
-### Method 1: Local Server
+### Prerequisites
+
+- Node.js 18+ and npm
+
+### Getting Started
 
 1. Clone or download the project files
-2. Start a local server in the project directory:
+2. Install dependencies:
    ```bash
-   python3 -m http.server 8000
+   npm install
    ```
-3. Open `http://localhost:8000` in your browser
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open the URL printed by Vite (default `http://localhost:5173`) in your browser
 
-### Method 2: Direct Opening
+### Production Build
 
-Some browsers may allow direct opening of the `index.html` file, but due to cross-origin restrictions, shader files may not load correctly. The local server method is recommended.
+```bash
+npm run build      # Output to dist/
+npm run preview    # Preview the production build locally
+```
 
 ## Usage Guide
 
@@ -88,14 +115,17 @@ Some browsers may allow direct opening of the `index.html` file, but due to cros
 
 - **Drawing**: Press and drag the left mouse button on the canvas, or slide on a touchscreen
 - **Select preset**: Click on a preset mode in the list to switch between different simulation effects
-- **Adjust parameters**: Use sliders to adjust feed and kill parameters
-- **Reset**: Click the reset button to restart the simulation
-- **Fullscreen**: Click the fullscreen button to enter/exit fullscreen mode
+- **Adjust parameters**: Use sliders to adjust feed, kill, and speed parameters
+- **Reset**: Click the reset button to restart the simulation with default settings
+- **Reset colors**: Restore the default color mapping
+- **Collapse panel**: On desktop, toggle the sidebar with the collapse button (it auto-hides the reopen button after a few seconds; move the cursor to the right edge to reveal it again). On mobile, swipe the drawer left to close it.
+- **Info**: Open the info dialog for an in-app explanation of the model and controls
 
 ### Parameter Explanation
 
 - **feed (feed rate)**: Controls the supply rate of substance u, affecting pattern growth and stability
 - **kill (kill rate)**: Controls the removal rate of substance v, affecting pattern decay and change
+- **speed**: Multiplier for simulation iterations per frame (`1.0` = 20 iterations/frame, `0` = paused)
 
 Different parameter combinations produce completely different patterns.
 
@@ -129,10 +159,10 @@ Requires a modern browser with WebGL 2.0 support.
 
 ### Adding New Preset Modes
 
-In the `index.js` file, modify the `PRESETS` array to add new parameter combinations:
+In the `src/constants.js` file, modify the `PRESETS` array to add new parameter combinations:
 
 ```javascript
-const PRESETS = [
+export const PRESETS = [
     // Existing presets...
     { feed: 0.03, kill: 0.065, name: 'My Custom Pattern' },  // New preset
 ];
@@ -140,16 +170,16 @@ const PRESETS = [
 
 ### Customizing Color Mapping
 
-In the `utils/doShow.js` file, modify the `DEFAULT_COLORS` object to adjust colors and thresholds:
+In the `src/constants.js` file, modify the `DEFAULT_COLORS` array to adjust colors and thresholds (five segments used by `src/lib/doShow.js`):
 
 ```javascript
-const DEFAULT_COLORS = {
-    color1: { r: 0, g: 0, b: 0, threshold: 0.0 },      // Black
-    color2: { r: 0, g: 1, b: 0, threshold: 0.2 },        // Green
-    color3: { r: 1, g: 1, b: 0, threshold: 0.21 },       // Yellow
-    color4: { r: 1, g: 0, b: 0, threshold: 0.4 },        // Red
-    color5: { r: 1, g: 1, b: 1, threshold: 0.6 }         // White
-};
+export const DEFAULT_COLORS = [
+    { r: 0, g: 0, b: 0, threshold: 0.0 },    // Black
+    { r: 0, g: 1, b: 0, threshold: 0.2 },     // Green
+    { r: 1, g: 1, b: 0, threshold: 0.21 },    // Yellow
+    { r: 1, g: 0, b: 0, threshold: 0.4 },     // Red
+    { r: 1, g: 1, b: 1, threshold: 0.6 }      // White
+];
 ```
 
 ## License

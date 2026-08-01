@@ -34,7 +34,7 @@ vec2 getTexelSize() {
 // ----------------------------------------------------------------
 vec2 computeLaplacian(vec2 uv, vec2 currentVal) {
     vec2 texel = getTexelSize();
-    
+
     // 冯·诺依曼邻域 (Von Neumann Neighborhood) 采样
     vec2 left   = texture2D(tSource, uv + vec2(-texel.x, 0.0)).rg;
     vec2 right  = texture2D(tSource, uv + vec2( texel.x, 0.0)).rg;
@@ -51,7 +51,7 @@ vec2 computeLaplacian(vec2 uv, vec2 currentVal) {
 vec2 solveGrayScott(vec2 current, vec2 laplacian, float f, float k) {
     float u = current.r;
     float v = current.g;
-    
+
     // 反应项：uv²
     float reaction = u * v * v;
 
@@ -71,7 +71,7 @@ void applyBrush(inout vec2 state, vec2 coords, vec2 mousePos) {
 
     vec2 texel = getTexelSize();
     vec2 diff = (coords - mousePos) / texel;
-    
+
     // 使用点积计算距离平方 (比 distance() 开根号更快)
     if (dot(diff, diff) < BRUSH_RADIUS_SQ) {
         state.g = BRUSH_VALUE; // 强制注入 V 物质
